@@ -1,0 +1,148 @@
+blueprint:
+  name: Halloween Swamp
+  description: ''
+  domain: automation
+  input:
+    cl_light:
+      name: Halloween - Swamp
+      description: Choose Light entity to Color Loop
+      #selector:
+      #  target:
+      #    entity:
+      #    - domain:
+      #      - light
+      #      - group
+      #    #multiple: false
+      selector:
+        entity:
+          domain:
+          - light
+          - group
+          multiple: false
+    cl_trigger:
+      name: Helper Variable
+      description: Choose Light entity to Color Loop
+      selector:
+        entity:
+          domain:
+          - input_boolean
+          multiple: false
+    cl_brightness:
+      name: Brightness
+      description: average brightnes
+      default: 80
+      selector:
+        number:
+          min: 0
+          max: 100
+    cl_brightness_offset:
+      name: Brightness offset
+      description: average brightnes
+      default: 10
+      selector:
+        number:
+          min: 0
+          max: 100
+    color_base:
+      name: Base Color
+      description: "Set to black to omit this color."
+      default:
+        - 0
+        - 0
+        - 0
+      selector:
+        color_rgb: {}
+    cl_offset:
+      name: Color offset max (+/-)
+      description: ""
+      default: 60
+      selector:
+        number:
+          min: 0
+          max: 128
+
+    #color_offset1:
+    #  name: Color offset max 1
+    #  description: "Set to black to omit this color."
+    #  default:
+    #    - 0
+    #    - 0
+    #    - 0
+    #  selector:
+    #    color_rgb: {}
+
+
+  source_url: https://www.rys.at/bla.fasel
+
+
+variables:
+  cl_light: !input "cl_light"
+  cl_trigger: !input "cl_trigger"
+  cl_brightness: !input "cl_brightness"
+  cl_brightness_offset: !input "cl_brightness_offset"
+  color_base: !input color_base
+  cl_offset: !input cl_offset
+
+trigger:
+- platform: state
+  entity_id:
+  - !input cl_trigger
+  from: 'off'
+  to: 'on'
+- platform: state
+  entity_id:
+  - !input cl_light
+  from: 'off'
+  to: 'on'
+#- platform: event
+#  event_type: automation_reloaded
+
+action:
+  - alias: Repeat this until the boolean is turned off
+    repeat:
+      until:
+        - condition: state
+          entity_id: !input cl_trigger
+          state: 'off'
+      sequence:
+        - service: light.turn_on
+          data_template:
+            entity_id: !input cl_light
+            brightness: "
+                {% set var_bright = (range(cl_brightness-cl_brightness_offset, cl_brightness+cl_brightness_offset)|random) %}
+                {% if var_bright > 100 %}
+                  {% set var_bright = 100 %}
+                {% endif %}
+                {% if var_bright < 0 %}
+                  {% set var_bright = 0 %}
+                {% endif %}
+                {{ var_bright }}"
+            rgb_color:
+              - "{% set var_color=range(color_base[0]-cl_offset,color_base[0]+cl_offset) | random %}
+                {% if var_color > 255 %}
+                  {% set var_color = 255 %}
+                {% endif %}
+                {% if var_color < 0 %}
+                  {% set var_color = 0 %}
+                {% endif %}
+                {{ var_color }}"
+              - "{% set var_color=range(color_base[1]-cl_offset,color_base[1]+cl_offset) | random %}
+                {% if var_color > 255 %}
+                  {% set var_color = 255 %}
+                {% endif %}
+                {% if var_color < 0 %}
+                  {% set var_color = 0 %}
+                {% endif %}
+                {{ var_color }}"
+              - "{% set var_color=range(color_base[2]-cl_offset,color_base[2]+cl_offset) | random %}
+                {% if var_color > 255 %}
+                  {% set var_color = 255 %}
+                {% endif %}
+                {% if var_color < 0 %}
+                  {% set var_color = 0 %}
+                {% endif %}
+                {{ var_color }}"
+            transition: 1
+        - delay:
+            milliseconds: "{{ (range(100, 800)|random) }}"
+mode: single
